@@ -1,0 +1,25 @@
+name: Publish to PyPI
+
+# 骨架：打 tag vX.Y.Z 时发布到 PyPI（Trusted Publishing / OIDC，免 token）。
+# 首次启用前需在 PyPI 配置 pending publisher（项目名 jianbing-utils，尽早占名）。
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # Trusted Publishing 必需
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv 0.11.26
+        run: curl -LsSf https://astral.sh/uv/0.11.26/install.sh | sh
+      - name: Build without sources
+        run: uv build --no-sources
+      # 冒烟：装一次构建产物，确保可导入
+      - name: Smoke import
+        run: uv run --with dist/*.whl --no-project python -c "import jianbing_utils; print(jianbing_utils.__version__)"
+      - name: Publish (Trusted Publishing)
+        run: uv publish

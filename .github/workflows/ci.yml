@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 库下限 3.11，矩阵覆盖到 payipa 用的 3.14（决策记录：jb 面向多项目复用）
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v4
+      # 钉 uv 版本（0.x 允许 minor 破坏性变更，不用浮动 action tag）
+      - name: Install uv 0.11.26
+        run: curl -LsSf https://astral.sh/uv/0.11.26/install.sh | sh
+      - name: Sync (locked)
+        run: uv sync --locked
+      - name: Ruff lint
+        run: uv run ruff check
+      - name: Ruff format check
+        run: uv run ruff format --check
+      - name: Pytest
+        run: uv run pytest
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv 0.11.26
+        run: curl -LsSf https://astral.sh/uv/0.11.26/install.sh | sh
+      # 验证禁用 sources 后仍可构建（依赖须全部可从公开 index 解析）
+      - name: Build without sources
+        run: uv build --no-sources
