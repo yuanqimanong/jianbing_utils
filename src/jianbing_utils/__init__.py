@@ -3,12 +3,12 @@
 设计理念：小而全、开箱即用、以静态方法/纯函数为主、低学习成本；聚焦爬虫/数据方向的常用工具。
 借鉴业界优秀库的**设计经验/思路**，代码完全自主实现——不依赖、也不复制任何第三方库源码。
 
-模块（先建目录、按需实现，当前以 payipa 用到的为主）：
-- ``s3``       —— S3 分片上传/下载（首个模块；payipa agent 直传大对象用）
-- ``net``      —— HTTP 请求辅助（规划中）
-- ``parse``    —— 解析辅助（规划中）
-- ``dedup``    —— 去重/指纹（规划中）
-- ``pipeline`` —— 数据管道（规划中）
+模块（**先建目录、按需实现**，当前仅 ``s3`` 有骨架、其余为占位；完整清单见 README）：
+- 已起骨架：``s3``（payipa agent 直传大对象用）
+- 采集向（规划中）：``net`` ``parse`` ``dedup`` ``pipeline`` ``proxy`` ``render`` ``ua`` ``cookies`` ``robots``
+- 通用向（规划中）：``text`` ``datetime`` ``collection`` ``number`` ``crypto`` ``codec`` ``fs`` ``jsonx``
+  ``cache`` ``retry`` ``ratelimit`` ``validate`` ``idgen`` ``config`` ``logx`` ``compress`` ``notify``
+  ``db`` ``concurrency``
 
 设计纪律（见 payipa 新方案/决策记录）：
 - ``requires-python >= 3.11``，代码须保持 3.11 语法兼容（供多项目复用，CI 矩阵 3.11–3.14）。

@@ -1,6 +1,6 @@
 [project]
 name = "jianbing-utils"
-version = "0.1.1"
+version = "0.1.2"
 description = "煎饼 Util —— 自研通用工具库：小而全、开箱即用、静态方法/纯函数为主。首个模块：S3 分片上传/下载。"
 readme = "README.md"
 license = "MIT"
@@ -37,7 +37,7 @@ dev = ["pytest>=8", "ruff>=0.10"]
 
 [tool.ruff]
 target-version = "py311" # 库下限 3.11，代码须保持 3.11 语法兼容
-line-length = 100
+line-length = 120 # 模块 docstring 含中文说明，放宽到 120
 src = ["src", "tests"]
 
 [tool.ruff.lint]

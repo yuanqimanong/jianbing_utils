@@ -22,9 +22,7 @@ def _require_boto3_client(client: BaseClient | None) -> BaseClient:
     try:
         import boto3  # noqa: PLC0415  惰性导入：boto3 走可选 extra
     except ImportError as exc:  # pragma: no cover - 依赖缺失路径
-        raise RuntimeError(
-            "presign 需要 boto3，请安装可选依赖：pip install 'jianbing-utils[s3]'"
-        ) from exc
+        raise RuntimeError("presign 需要 boto3，请安装可选依赖：pip install 'jianbing-utils[s3]'") from exc
     return boto3.client("s3")
 
 
