@@ -1,13 +1,13 @@
 [project]
 name = "jianbing-utils"
-version = "0.1.0"
-description = "煎饼 Util —— 开箱即用的爬虫/数据工具库（feapder 工具类 + hutool 风格）"
+version = "0.1.1"
+description = "煎饼 Util —— 自研通用工具库：小而全、开箱即用、静态方法/纯函数为主。首个模块：S3 分片上传/下载。"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [{ name = "元气码农少女酱" }]
-keywords = ["s3", "multipart", "presigned", "crawler", "utils", "feapder", "hutool"]
+keywords = ["s3", "multipart", "presigned", "object-storage", "utils", "toolkit"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
