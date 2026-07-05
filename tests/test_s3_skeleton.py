@@ -18,7 +18,7 @@ from jianbing_utils.s3 import (
 
 
 def test_version_exposed() -> None:
-    assert jianbing_utils.__version__ == "0.1.2"
+    assert jianbing_utils.__version__ == "0.1.3"
 
 
 def test_constants_match_s3_limits() -> None:
