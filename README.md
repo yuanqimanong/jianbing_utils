@@ -4,7 +4,8 @@
 
 ## 状态
 
-**先建目录、按需实现**：当前仅 `s3` 有骨架（payipa 在用），其余为占位（`规划中`），随其他项目引入时再开发（YAGNI）。
+已实现 `text`、`crypto`、`retry` 和 S3 分片规划；S3 网络操作仍为骨架。其余目录为规划占位，按实际需求开发。
+模块边界、兼容行为和测试说明见 [架构说明](docs/architecture.md)。
 
 ### 采集 / 爬虫向
 
@@ -34,7 +35,7 @@
 | `fs` | 文件/路径/流工具（读写/遍历/临时文件） | 规划中 |
 | `jsonx` | JSON 读写/路径取值/安全解析 | 规划中 |
 | `cache` | 本地缓存（TTL/LRU） | 规划中 |
-| `retry` | 重试/退避（backoff_delay / retry_async，指数退避 + 抖动） | ✅ 已实现 |
+| `retry` | 不可变 BackoffPolicy + 兼容函数入口 + 可取消异步重试 | ✅ 已实现 |
 | `ratelimit` | 限流原语（令牌桶/漏桶） | 规划中 |
 | `validate` | 数据校验（类型/正则/范围/schema） | 规划中 |
 | `idgen` | ID 生成（uuid/雪花/短码） | 规划中 |
@@ -49,7 +50,7 @@
 
 ```bash
 pip install jianbing-utils          # 轻量本体（零运行期硬依赖）
-pip install 'jianbing-utils[s3]'    # 含 boto3（presigned 签发 / multipart 生命周期）
+pip install 'jianbing-utils[s3]'    # 预留 boto3 客户端依赖；网络 API 尚未实现
 ```
 
 ## 开发

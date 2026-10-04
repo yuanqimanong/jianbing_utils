@@ -1,54 +1,25 @@
 """S3 multipart 上传编排（分片规划 + 断点续传 + 完整性）。
 
-骨架：接口 + 分片规划纯函数（已实现，可测）；实际网络动作留 M1（惰性导入 boto3）。
+网络接口仍为骨架；纯分片规划在 planning 模块实现，此处保留旧导入路径。
 断点续传用 multipart 原生机制（持久化 UploadId → ListParts 查已传 → 补传 → Complete），
 无需引入 tus；生产须配 ``AbortIncompleteMultipartUpload`` lifecycle 清理孤儿分块。
 """
 
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING
 
 from jianbing_utils.s3.constants import (
     DEFAULT_PART_SIZE,
-    MAX_PARTS,
-    MIN_PART_SIZE,
 )
+from jianbing_utils.s3.planning import count_parts as count_parts
+from jianbing_utils.s3.planning import plan_part_size as plan_part_size
 from jianbing_utils.s3.types import MultipartSession, PartInfo, ProgressCallback
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from botocore.client import BaseClient
-
-
-def plan_part_size(total_size: int, *, preferred_part_size: int = DEFAULT_PART_SIZE) -> int:
-    """给定对象总大小，计算满足 S3 约束的分片大小（纯函数，已实现）。
-
-    约束：每块 ≥ ``MIN_PART_SIZE``（末块除外）、分片数 ≤ ``MAX_PARTS``。
-    当 ``preferred_part_size`` 会导致分片数超限时，向上取整放大分片。
-    """
-    if total_size < 0:
-        raise ValueError("total_size 不能为负")
-    part_size = max(preferred_part_size, MIN_PART_SIZE)
-    if total_size == 0:
-        return part_size
-    # 保证分片数不超过 MAX_PARTS
-    min_needed = math.ceil(total_size / MAX_PARTS)
-    if min_needed > part_size:
-        # 放大到 MIN_PART_SIZE 的整数倍，避免非对齐分片
-        part_size = math.ceil(min_needed / MIN_PART_SIZE) * MIN_PART_SIZE
-    return part_size
-
-
-def count_parts(total_size: int, part_size: int) -> int:
-    """计算分片数量（纯函数，已实现）。"""
-    if part_size <= 0:
-        raise ValueError("part_size 必须为正")
-    if total_size <= 0:
-        return 0
-    return math.ceil(total_size / part_size)
 
 
 class MultipartUploader:
