@@ -47,7 +47,7 @@ s3/__init__.py          公共 facade
 - count_parts 的负 total_size：`ValueError`，与 plan_part_size 一致。
 
 S3 的实际上传、分片续传和 presigned 签发仍未实现；本次不改变协议常量，不宣称新增网络能力。
-版本号和 payipa 的发布 tag 固定源未变。新代码在两个仓库联用时可通过 payipa 的 `scripts/verify_sibling_utils.py` 检查，发版仍遵循版本与 tag 流程。
+本次版本升级到 `0.1.4`，合并后发布 Git tag `v0.1.4`，再更新 payipa 的固定 tag 源和 lock。两个仓库联用时可通过 payipa 的 `scripts/verify_sibling_utils.py` 检查，不把本地 editable path 源写进提交。
 
 ## 验证与回滚
 
