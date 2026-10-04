@@ -17,11 +17,8 @@ from jianbing_utils.s3.constants import (
     MIN_PART_SIZE,
     MULTIPART_THRESHOLD,
 )
-from jianbing_utils.s3.multipart import (
-    MultipartUploader,
-    count_parts,
-    plan_part_size,
-)
+from jianbing_utils.s3.multipart import MultipartUploader
+from jianbing_utils.s3.planning import count_parts, plan_part_size
 from jianbing_utils.s3.presign import presign_get, presign_put, presign_upload_part
 from jianbing_utils.s3.types import (
     MultipartSession,
