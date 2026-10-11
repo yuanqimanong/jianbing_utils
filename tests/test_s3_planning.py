@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from jianbing_utils.s3 import MAX_PARTS, MIN_PART_SIZE, count_parts, multipart, plan_part_size, planning
+from jianbing_utils.s3 import MAX_PART_SIZE, MAX_PARTS, MIN_PART_SIZE, count_parts, multipart, plan_part_size, planning
 
 
 def test_legacy_exports_forward_to_pure_planning() -> None:
@@ -35,3 +35,30 @@ def test_negative_object_sizes_are_rejected_consistently() -> None:
         plan_part_size(-1)
     with pytest.raises(ValueError):
         count_parts(-1, MIN_PART_SIZE)
+
+
+@pytest.mark.parametrize("value", [1.5, "1", True])
+def test_planning_rejects_non_integer_sizes(value) -> None:
+    with pytest.raises(TypeError, match="total_size"):
+        plan_part_size(value)
+    with pytest.raises(TypeError, match="preferred_part_size"):
+        plan_part_size(1, preferred_part_size=value)
+    with pytest.raises(TypeError, match="total_size"):
+        count_parts(value, MIN_PART_SIZE)
+    with pytest.raises(TypeError, match="part_size"):
+        count_parts(1, value)
+
+
+def test_planning_rejects_parts_above_declared_protocol_limit() -> None:
+    with pytest.raises(ValueError, match="preferred_part_size"):
+        plan_part_size(1, preferred_part_size=MAX_PART_SIZE + 1)
+    with pytest.raises(ValueError, match="part_size"):
+        count_parts(1, MAX_PART_SIZE + 1)
+    with pytest.raises(ValueError, match="MAX_PART_SIZE"):
+        plan_part_size(MAX_PART_SIZE * MAX_PARTS + 1)
+
+
+def test_maximum_part_size_is_valid_and_small_preferences_still_scale_up() -> None:
+    assert plan_part_size(1, preferred_part_size=MAX_PART_SIZE) == MAX_PART_SIZE
+    assert count_parts(MAX_PART_SIZE + 1, MAX_PART_SIZE) == 2
+    assert plan_part_size(1, preferred_part_size=1) == MIN_PART_SIZE

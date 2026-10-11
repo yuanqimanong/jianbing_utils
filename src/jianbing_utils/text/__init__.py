@@ -43,6 +43,7 @@ def collapse_ws(s: str) -> str:
 
 def truncate(s: str, length: int, *, suffix: str = "…") -> str:
     """超长截断并加省略后缀（length 含后缀长度）。"""
+    _require_nonnegative_length(length, "length")
     if len(s) <= length:
         return s
     if length <= len(suffix):
@@ -52,11 +53,20 @@ def truncate(s: str, length: int, *, suffix: str = "…") -> str:
 
 def mask(s: str, *, keep_start: int = 0, keep_end: int = 0, mask_char: str = "*") -> str:
     """脱敏：保留首尾若干字符，中间用掩码字符替换。"""
+    _require_nonnegative_length(keep_start, "keep_start")
+    _require_nonnegative_length(keep_end, "keep_end")
     n = len(s)
     if n <= keep_start + keep_end:
         return mask_char * n
     tail = s[-keep_end:] if keep_end else ""
     return s[:keep_start] + mask_char * (n - keep_start - keep_end) + tail
+
+
+def _require_nonnegative_length(value: int, name: str) -> None:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{name} 必须是整数")
+    if value < 0:
+        raise ValueError(f"{name} 不能为负")
 
 
 def _words(s: str) -> list[str]:

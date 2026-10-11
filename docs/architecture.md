@@ -49,6 +49,13 @@ s3/__init__.py          公共 facade
 S3 的实际上传、分片续传和 presigned 签发仍未实现；本次不改变协议常量，不宣称新增网络能力。
 本次版本升级到 `0.1.4`，合并后发布 Git tag `v0.1.4`，再更新 payipa 的固定 tag 源和 lock。两个仓库联用时可通过 payipa 的 `scripts/verify_sibling_utils.py` 检查，不把本地 editable path 源写进提交。
 
+## 2026-10-11 边界修正
+
+- `truncate` 的 length、`mask` 的 keep_start / keep_end 必须是非负整数；非整数（包括 bool）抛出 `TypeError`，负数抛出 `ValueError`。校验先于空文本等快速返回，避免负切片意外保留待脱敏原文；有效输入行为不变。
+- 重试执行器向上传播含取消或退出信号的嵌套 `BaseExceptionGroup`，保留原异常组；普通 `ExceptionGroup` 仍按调用方的异常过滤配置重试。
+- 指数退避仅在中间幂溢出或落入低精度范围时回退到对数域，防止乘上 base 后本可表示的结果被提前封顶或清零。极端结果按浮点精度比较，cap 和抖动范围保持不变。
+- S3 规划的字节数必须是整数，显式或自动计算的分片大小不能超过既有 `MAX_PART_SIZE`。较小的 preferred_part_size 继续自动抬升，`count_parts` 保留大整数精确计数；协议常量和网络骨架未变。
+
 ## 验证与回滚
 
 运行 `uv run pytest`、`uv run ruff check`、`uv run ruff format --check`、`uv build --no-sources`。

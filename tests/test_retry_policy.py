@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -22,7 +23,29 @@ def test_long_running_backoff_never_overflows(attempt: int) -> None:
     assert backoff_delay(attempt, base=1.0, cap=30.0) == 30.0
     assert backoff_delay(attempt, base=0.0) == 0.0
     assert backoff_delay(attempt, factor=1.0) == 0.5
+    assert backoff_delay(attempt, base=1, factor=2) == 30.0
     assert 0.0 <= backoff_delay(attempt, factor=0.5) < 1e-308
+
+
+@pytest.mark.parametrize(
+    ("base", "factor", "attempt", "expected"),
+    [
+        (1e-300, 1e300, 3, 1e300),
+        (1e-300, 2.0, 1025, math.ldexp(1e-300, 1024)),
+        (1e300, 0.5, 1200, math.ldexp(1e300, -1199)),
+        (1e300, 1e-300, 3, 1e-300),
+        (1e300, 0.1, 324, 1e-23),
+    ],
+)
+def test_backoff_scales_before_discarding_extreme_powers(base, factor, attempt, expected) -> None:
+    actual = backoff_delay(attempt, base=base, factor=factor, cap=1e308)
+    assert actual == pytest.approx(expected, rel=1e-12, abs=0)
+
+
+@pytest.mark.parametrize("cap", [1e-100, 30.0, 1e308])
+def test_extreme_backoff_preserves_cap_and_jitter_bounds(cap: float) -> None:
+    assert backoff_delay(4, base=1e-300, factor=1e300, cap=cap) == cap
+    assert 0 <= backoff_delay(4, base=1e-300, factor=1e300, cap=cap, jitter=True) <= cap
 
 
 @pytest.mark.parametrize(
@@ -94,14 +117,15 @@ def test_unselected_error_is_not_retried() -> None:
     assert calls == ["called"]
 
 
-def test_cancellation_is_never_retried_even_with_base_exception_filter() -> None:
+@pytest.mark.parametrize("signal", [asyncio.CancelledError, KeyboardInterrupt, SystemExit, GeneratorExit])
+def test_control_flow_is_never_retried_even_with_base_exception_filter(signal) -> None:
     calls = []
 
     async def operation():
         calls.append("called")
-        raise asyncio.CancelledError()
+        raise signal()
 
-    with pytest.raises(asyncio.CancelledError):
+    with pytest.raises(signal):
         asyncio.run(retry_async(operation, exceptions=(BaseException,)))
     assert calls == ["called"]
 
@@ -119,3 +143,37 @@ def test_cancellation_during_backoff_propagates() -> None:
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(retry_async(operation, sleep=sleep))
     assert calls == ["called"]
+
+
+@pytest.mark.parametrize("signal", [asyncio.CancelledError, KeyboardInterrupt, SystemExit, GeneratorExit])
+def test_nested_control_flow_group_is_never_retried(signal) -> None:
+    calls = []
+    error = BaseExceptionGroup("outer", [OSError("transient"), BaseExceptionGroup("inner", [signal()])])
+
+    async def operation():
+        calls.append("called")
+        raise error
+
+    async def sleep(_delay):
+        calls.append("slept")
+
+    with pytest.raises(BaseExceptionGroup) as raised:
+        asyncio.run(retry_async(operation, exceptions=(BaseException,), sleep=sleep))
+    assert raised.value is error
+    assert calls == ["called"]
+
+
+def test_ordinary_exception_group_can_still_be_retried() -> None:
+    calls = []
+
+    async def operation():
+        calls.append("called")
+        if len(calls) == 1:
+            raise ExceptionGroup("transient failures", [OSError("temporary")])
+        return "ok"
+
+    async def sleep(_delay):
+        pass
+
+    assert asyncio.run(retry_async(operation, sleep=sleep)) == "ok"
+    assert calls == ["called", "called"]
