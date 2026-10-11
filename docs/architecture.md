@@ -47,12 +47,18 @@ s3/__init__.py          公共 facade
 - count_parts 的负 total_size：`ValueError`，与 plan_part_size 一致。
 
 S3 的实际上传、分片续传和 presigned 签发仍未实现；本次不改变协议常量，不宣称新增网络能力。
-本次版本升级到 `0.1.4`，合并后发布 Git tag `v0.1.4`，再更新 payipa 的固定 tag 源和 lock。两个仓库联用时可通过 payipa 的 `scripts/verify_sibling_utils.py` 检查，不把本地 editable path 源写进提交。
+首次架构重构发布为 `v0.1.4`；2026-10-11 的边界修正发布为 `v0.1.5`。先合并并发布工具库 Git tag，再更新 payipa 的固定 tag 源和 lock。两个仓库联用时可通过 payipa 的 `scripts/verify_sibling_utils.py` 检查，不把本地 editable path 源写进提交。
+
+## 2026-10-11 边界修正
+
+- `truncate` 的 length、`mask` 的 keep_start / keep_end 必须是非负整数；非整数（包括 bool）抛出 `TypeError`，负数抛出 `ValueError`。校验先于空文本等快速返回，避免负切片意外保留待脱敏原文；有效输入行为不变。
+- 重试执行器向上传播含取消或退出信号的嵌套 `BaseExceptionGroup`，保留原异常组；普通 `ExceptionGroup` 仍按调用方的异常过滤配置重试。
+- 指数退避仅在中间幂溢出或落入低精度范围时回退到对数域，防止乘上 base 后本可表示的结果被提前封顶或清零。极端结果按浮点精度比较，cap 和抖动范围保持不变。
+- S3 规划的字节数必须是整数，显式或自动计算的分片大小不能超过既有 `MAX_PART_SIZE`。较小的 preferred_part_size 继续自动抬升，`count_parts` 保留大整数精确计数；协议常量和网络骨架未变。
 
 ## 验证与回滚
 
 运行 `uv run pytest`、`uv run ruff check`、`uv run ruff format --check`、`uv build --no-sources`。
 架构测试用 `python -S` 验证无第三方运行时依赖，并静态检查纯策略的导入边界；CI 的 Python 3.11–3.14 矩阵继续保留。
 
-本次回滚须同时撤销新增 `policy.py`、`runner.py`、`planning.py` 与公共 facade 变更，再重新运行测试。
-没有数据库或用户数据迁移；工作区 `refactor-review/README.md` 提供可反向应用的 patch。
+`v0.1.5` 无数据库或用户数据迁移。需要回滚时，将使用方依赖 tag 改回 `v0.1.4` 并重新生成 lock、运行回归；库仓库通过 revert 本次合并提交恢复，保留已发布 tag。

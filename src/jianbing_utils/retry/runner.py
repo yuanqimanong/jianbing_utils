@@ -9,6 +9,7 @@ from typing import TypeVar
 from jianbing_utils.retry.policy import BackoffPolicy
 
 T = TypeVar("T")
+_CONTROL_FLOW_EXCEPTIONS = (asyncio.CancelledError, KeyboardInterrupt, SystemExit, GeneratorExit)
 
 
 async def retry_async(
@@ -39,9 +40,12 @@ async def retry_async(
     while True:
         try:
             return await fn()
-        except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+        except _CONTROL_FLOW_EXCEPTIONS:
             raise
-        except exceptions:
+        except exceptions as exc:
+            if isinstance(exc, BaseExceptionGroup) and exc.subgroup(_CONTROL_FLOW_EXCEPTIONS) is not None:
+                # 嵌套异常组中只要含取消或退出信号，整个原始异常组都应传播。
+                raise
             if attempt >= attempts:
                 raise
             await do_sleep(policy.delay(attempt))

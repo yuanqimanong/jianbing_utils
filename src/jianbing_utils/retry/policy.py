@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import random
+import sys
 from dataclasses import dataclass
 
 
@@ -27,11 +28,25 @@ class BackoffPolicy:
         """attempt 从 1 起；为兼容旧接口，小于 1 时仍使用首次退避值。"""
         if self.base == 0 or self.cap == 0:
             return 0.0
-        try:
-            exp = self.base if self.factor == 1 else self.base * self.factor ** max(0, attempt - 1)
-        except OverflowError:
-            # 长期断连后仍返回封顶值，不能因先算指数再取 min 而让重试循环退出。
-            exp = self.cap if self.factor > 1 else 0.0
+        exponent = max(0, attempt - 1)
+        if self.factor == 1 or exponent == 0:
+            exp = self.base
+        else:
+            try:
+                power = float(self.factor) ** exponent
+            except OverflowError:
+                power = math.inf if self.factor > 1 else 0.0
+            if not math.isfinite(power) or power < sys.float_info.min:
+                # 中间幂溢出或丢失精度不代表乘上 base 后仍不可表示。
+                # 仅在该边界使用对数域，普通退避保留原有计算结果。
+                try:
+                    log_delay = math.log(self.base) + exponent * math.log(self.factor)
+                except OverflowError:
+                    exp = self.cap if self.factor > 1 else 0.0
+                else:
+                    exp = self.cap if log_delay >= math.log(self.cap) else math.exp(log_delay)
+            else:
+                exp = self.base * power
         delay = min(self.cap, exp)
         return random.uniform(0, delay) if self.jitter else delay
 
